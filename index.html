@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>World Café — Interactive Lab</title>
+<meta name="theme-color" content="#06080f" />
+<style>
+  :root{
+    --bg:#06080f; --bg2:#0a0f1a; --card:#0d1324; --ink:#e9eeff; --muted:#97a1b3;
+    --a:#7c9cff; --b:#2af5ff; --ok:#34d399; --warn:#fbbf24; --err:#f87171;
+    --ring:0 0 36px rgba(124,156,255,.22), 0 0 12px rgba(42,245,255,.18);
+    --r:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--ink); background:
+      radial-gradient(1200px 600px at 80% -20%, rgba(124,156,255,.08), transparent 60%),
+      radial-gradient(900px 500px at 10% 110%, rgba(42,245,255,.06), transparent 55%),
+      linear-gradient(180deg, var(--bg), var(--bg2));
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    overflow-x:hidden;
+  }
+
+  /* animated holo grid */
+  .gridbg:before,.gridbg:after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:-2;
+    background:
+      linear-gradient(transparent 24px, rgba(124,156,255,.07) 25px) 0 0/100% 25px,
+      linear-gradient(90deg, transparent 24px, rgba(42,245,255,.05) 25px) 0 0/25px 100%;
+    mask-image: radial-gradient(1200px 700px at 50% 20%, black, transparent 80%);
+    animation:gridFloat 28s linear infinite;
+  }
+  .gridbg:after{filter:blur(.7px) brightness(1.2); opacity:.45; animation-direction:reverse}
+  @keyframes gridFloat{0%{transform:translateY(0)}100%{transform:translateY(25px)}}
+
+/* page animation */
+
+/* animated background with particles + orbs */
+.fxbg {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background: radial-gradient(circle at 30% 20%, rgba(124,156,255,0.1), transparent 60%),
+              radial-gradient(circle at 70% 80%, rgba(42,245,255,0.08), transparent 60%);
+  overflow: hidden;
+}
+
+.fxbg::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(124,156,255,.4) 2px, transparent 2px);
+  background-size: 40px 40px;
+  animation: driftDots 40s linear infinite;
+  opacity:.35;
+}
+@keyframes driftDots {
+  0% { transform:translate(0,0) }
+  100% { transform:translate(40px,40px) }
+}
+
+.fxbg::after {
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(124,156,255,.18), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(42,245,255,.15), transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(100,200,255,.12), transparent 40%);
+  animation: pulseOrbs 12s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+@keyframes pulseOrbs {
+  0% { transform:scale(1) translateY(0) }
+  100% { transform:scale(1.2) translateY(-20px) }
+}
+
+
+  header{
+    position:sticky; top:0; z-index:40; backdrop-filter: blur(10px);
+    background:linear-gradient(180deg, rgba(6,8,15,.9), rgba(6,8,15,.55));
+    border-bottom:1px solid rgba(124,156,255,.12);
+  }
+  .nav{max-width:1100px; margin:0 auto; padding:.75rem 1rem; display:flex; align-items:center; gap:.75rem}
+  .brand{display:flex; gap:.6rem; align-items:center; font-weight:700}
+  .mark{width:28px; height:28px; border-radius:8px; background:conic-gradient(from 0turn, var(--a), var(--b), var(--a)); box-shadow:var(--ring)}
+  .nav a{color:var(--muted); text-decoration:none; padding:.45rem .7rem; border-radius:12px}
+  .nav a:hover{color:var(--ink); background:rgba(124,156,255,.1)}
+  .sp{flex:1}
+  .cta{background:linear-gradient(90deg, var(--a), var(--b)); color:#00121a; font-weight:700; text-decoration:none; padding:.6rem .9rem; border-radius:12px; box-shadow:var(--ring)}
+
+  section{max-width:1100px; margin:0 auto; padding:2rem 1rem}
+  .hero{display:grid; gap:1rem; padding:2rem 1rem 1rem}
+  .chip{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem; border-radius:999px; color:#00121a; background:linear-gradient(90deg, var(--a), var(--b)); box-shadow:var(--ring)}
+  .glitch{position:relative; display:inline-block}
+  .glitch:before,.glitch:after{content:attr(data-text); position:absolute; inset:0; mix-blend-mode:screen; filter:blur(.6px)}
+  .glitch:before{transform:translate(.9px,-.7px); color:rgba(124,156,255,.85)}
+  .glitch:after{transform:translate(-1px,.8px); color:rgba(42,245,255,.75)}
+  h1{margin:.25rem 0; font-size:clamp(1.7rem, 4.5vw, 2.8rem); letter-spacing:.3px; text-shadow: 0 0 20px rgba(124,156,255,.25)}
+  p.m{color:var(--muted)}
+  .cards{display:grid; gap:1rem; grid-template-columns:1fr}
+  @media(min-width:760px){ .cards{grid-template-columns:repeat(2,1fr)} }
+  .card{background:linear-gradient(180deg, rgba(13,19,36,.78), rgba(13,19,36,.55)); border:1px solid rgba(124,156,255,.14); border-radius:var(--r); padding:1rem; box-shadow:var(--ring)}
+  .btn{display:inline-flex; align-items:center; gap:.45rem; padding:.6rem .85rem; border-radius:12px; color:var(--ink); background:rgba(124,156,255,.12); border:1px solid rgba(124,156,255,.18); text-decoration:none}
+  .btn:hover{background:rgba(124,156,255,.18)}
+  .btn.p{background:linear-gradient(90deg, var(--a), var(--b)); color:#00121a; border:0}
+
+  /* table grid */
+  .grid{display:grid; gap:1rem; grid-template-columns:1fr}
+  @media(min-width:820px){ .grid{grid-template-columns:repeat(3,1fr)} }
+  .tcard{position:relative; padding:1rem; border-radius:16px; border:1px solid rgba(124,156,255,.14); background:linear-gradient(180deg, rgba(15,20,36,.7), rgba(15,20,36,.55)); box-shadow:var(--ring); overflow:hidden}
+  .tcard .idx{position:absolute; top:.7rem; right:.8rem; font-weight:700; opacity:.4}
+  .tcard h3{margin:.1rem 0 .4rem}
+  .tcard p{color:var(--muted)}
+  .tcard:hover{transform:translateY(-2px); transition:transform .18s ease}
+
+  /* dialogs */
+  dialog{border:1px solid rgba(124,156,255,.25); border-radius:18px; color:var(--ink); background:linear-gradient(180deg, rgba(8,12,24,.95), rgba(10,15,28,.9)); width:min(760px, 95vw); padding:0; box-shadow:var(--ring)}
+  dialog::backdrop{background:rgba(0,10,20,.7); backdrop-filter:blur(2px)}
+  .mh{display:flex; align-items:center; justify-content:space-between; padding:1rem; border-bottom:1px solid rgba(124,156,255,.15)}
+  .mb{padding:1rem; max-height:75vh; overflow:auto}
+  .x{background:transparent; border:0; color:var(--muted); font-size:1.2rem}
+
+  /* seat simulator */
+  .arena{position:relative; width:320px; height:320px; margin:0 auto}
+  .table{position:absolute; inset:70px; border-radius:50%; background:radial-gradient(circle at 30% 30%, rgba(124,156,255,.2), rgba(20,30,55,.9)); border:2px solid rgba(124,156,255,.25); box-shadow:var(--ring)}
+  .chair{position:absolute; width:56px; height:56px; border-radius:50%; background:#0d152b; border:2px solid rgba(124,156,255,.25); display:grid; place-items:center; color:var(--muted); cursor:pointer; transition:transform .25s ease, background .25s ease}
+  .chair:hover{transform:scale(1.06)}
+  .chair.full{background:linear-gradient(180deg, rgba(60,220,180,.15), rgba(30,180,140,.25)); color:#c7ffe7; border-color:rgba(60,220,180,.45); box-shadow:0 0 20px rgba(60,220,180,.25)}
+  .seatnote{margin:.6rem 0; color:var(--muted); text-align:center}
+
+  /* insights */
+  .row{display:flex; gap:.5rem; flex-wrap:wrap; margin:.6rem 0}
+  input[type=text]{flex:1; background:#0d152b; color:var(--ink); border:1px solid rgba(124,156,255,.25); border-radius:12px; padding:.6rem .7rem}
+  .insight{background:#0d152b; border:1px solid rgba(124,156,255,.18); color:var(--ink); padding:.45rem .65rem; border-radius:10px; margin:.35rem 0}
+
+  /* word bubble wall */
+  .wall{position:relative; min-height:220px; background:rgba(124,156,255,.06); border:1px solid rgba(124,156,255,.12); border-radius:16px; overflow:hidden}
+  .bubble{position:absolute; padding:.25rem .5rem; border-radius:999px; white-space:nowrap; font-weight:600; filter:drop-shadow(0 6px 14px rgba(20,200,220,.25))}
+  @keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-14px)}100%{transform:translateY(0)}}
+
+  /* timers */
+  .timer{display:grid; gap:.6rem}
+  .rowt{display:grid; grid-template-columns: 32px 1fr auto; gap:.6rem; align-items:center; background:rgba(124,156,255,.08); border:1px solid rgba(124,156,255,.14); padding:.6rem; border-radius:12px}
+  .led{width:12px; height:12px; border-radius:50%; background:#324060; box-shadow:0 0 0 2px rgba(124,156,255,.12) inset}
+  .led.run{background:var(--ok); box-shadow:0 0 8px var(--ok)}
+  .progress{height:8px; background:rgba(124,156,255,.12); border-radius:10px; overflow:hidden}
+  .bar{height:100%; width:0%; background:linear-gradient(90deg, var(--a), var(--b))}
+  input[type=number]{width:88px; background:#0d152b; color:var(--ink); border:1px solid rgba(124,156,255,.25); border-radius:10px; padding:.35rem .5rem}
+
+  /* host summary */
+  textarea{width:100%; min-height:120px; background:#0d152b; color:var(--ink); border:1px solid rgba(124,156,255,.25); border-radius:10px; padding:.6rem .7rem}
+
+  /* projector mode */
+  .projector{position:fixed; inset:0; z-index:60; display:none; background:#05070e}
+  .projector.on{display:block}
+  .projwrap{max-width:1200px; margin:0 auto; padding:2rem; color:#dfe7ff}
+  .projbubble{display:inline-block; margin:.35rem; padding:.35rem .7rem; border-radius:999px; background:rgba(124,156,255,.15)}
+</style>
+</head>
+
+
+
+
+
+
+<body class="gridbg">
+<div class="fxbg"></div>
+<header>
+  <nav class="nav" aria-label="Primary">
+    <div class="brand"><div class="mark" aria-hidden="true"></div> <span>World Café Lab</span></div>
+    <a href="#how">How it works</a>
+    <a href="#tables">Tables</a>
+    <a href="#flow">Flow timers</a>
+    <a href="#insights">Insights wall</a>
+    <span class="sp"></span>
+    <a class="cta" href="#" id="projectorBtn">Projector</a>
+  </nav>
+</header>
+
+<section class="hero" id="how">
+  <div class="chip">Interactive</div>
+  <h1><span class="glitch" data-text="Can law be treated as data?">Can law be treated as data?</span></h1>
+  <p class="m">Pick a table, fill seats, run the timed rounds, add insights, watch a live word wall, and craft the 2 minute host summary.</p>
+  <div class="cards">
+    <div class="card">
+      <h3>Setup</h3>
+      <ul class="m">
+        <li>Six fixed tables with five participants each</li>
+        <li>Flip charts, sticky notes, pens</li>
+      </ul>
+      <div class="row">
+        <a class="btn p" href="#tables">Choose a table</a>
+        <a class="btn" href="#flow">Open timers</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Rounds</h3>
+	<ul class="m">
+        <li>Orientation (10 mins)</li>
+        <li>Deep discussions (25-30 mins)</li>
+        <li>Host Preparation (10 mins)</li>
+        <li>Host Presentation (15-20 mins)</li>
+        <li>Collective Discussions (15-20 mins)</li>
+      </ul>
+      <div class="row">
+        <button class="btn" id="demo">Demo fill</button>
+        <button class="btn" id="resetAll">Reset all</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tables">
+  <h2>Pick your table</h2>
+  <div class="grid" id="tgrid"></div>
+</section>
+
+<section id="flow">
+  <h2>Flow timers</h2>
+  <div class="card">
+    <p class="m">Adjust minutes as needed, then Start. Bars auto advance through all five segments.</p>
+    <div class="timer" id="timerWrap"></div>
+    <div class="row">
+      <button class="btn p" id="start">Start</button>
+      <button class="btn" id="pause">Pause</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+  </div>
+</section>
+
+<section id="insights">
+  <h2>Live insights wall</h2>
+  <p class="m">Short, specific lines work best. The wall grows as tables add insights.</p>
+  <div class="wall" id="wall" aria-live="polite"></div>
+</section>
+
+<footer>
+  <section>
+    <p class="m">Note to users: All inputs are stored locally on your device only. Projector mode mirrors summaries and high frequency words.</p>
+  </section>
+</footer>
+
+<!-- Table modal -->
+<dialog id="modal">
+  <div class="mh">
+    <strong id="mtitle">Table</strong>
+    <button class="x" onclick="modal.close()" aria-label="Close">✕</button>
+  </div>
+  <div class="mb">
+    <p id="msub" class="m"></p>
+    <h4>Cues</h4>
+    <ul id="mcues" class="m"></ul>
+
+    <h4 style="margin-top:.8rem">Seat simulator</h4>
+    <div class="arena" aria-label="Seat simulator">
+      <div class="table" aria-hidden="true"></div>
+      <!-- chairs injected -->
+    </div>
+    <div class="seatnote">Tap a chair to toggle occupied</div>
+
+    <h4 style="margin-top:.8rem">Add an insight</h4>
+    <div class="row">
+      <input id="ins" type="text" maxlength="140" placeholder="One crisp line, max 140 characters" />
+      <button class="btn" id="add">Add</button>
+    </div>
+    <div id="ilist"></div>
+
+    <h4 style="margin-top:.8rem">Host summary</h4>
+    <textarea id="hostTxt" placeholder="Key insights, disagreements, provocations for a 2 minute share"></textarea>
+    <div class="row">
+      <button class="btn" id="saveHost">Save</button>
+      <button class="btn" id="exportHost">Export .txt</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Projector -->
+<div class="projector" id="proj">
+  <div class="projwrap">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem">
+      <h2 style="margin:0">World Café Projector</h2>
+      <div class="row">
+        <button class="btn" id="projFull">Fullscreen</button>
+        <button class="btn" id="projClose">Close</button>
+      </div>
+    </div>
+    <div style="display:grid; gap:1rem; grid-template-columns:1fr; margin-bottom:1rem">
+      <div class="card"><h3 style="margin-top:0">High frequency words</h3><div id="projWords"></div></div>
+      <div class="card"><h3 style="margin-top:0">Host summaries</h3><div id="projHosts"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Data mapped from your World Café docs ===== */
+const DATA = {
+  tables:[
+    {id:1, title:"Epistemology", sub:"What forms of knowledge become accessible or invisible when we treat law as data?", cues:[
+      "What kinds of legal knowledge can be quantified, and what cannot?",
+      "Are lived experiences, oral histories, or customary law amenable to datafication?",
+      "How does the form of data shape what we see or ignore?",
+      "Does datafication privilege certain disciplines?",
+      "Can we grasp justice or power through data alone?"
+    ]},
+    {id:2, title:"Methodology", sub:"What are the practical challenges of translating legal reasoning into structured, analysable data?", cues:[
+      "How to capture ambiguity, context, or dissent in structured formats?",
+      "What if statutes or judgments vary in language and structure?",
+      "How to handle multiple interpretations or inconsistencies?",
+      "Tools you used or struggled with for legal data extraction?",
+      "Risks of oversimplification when coding arguments?"
+    ]},
+    {id:3, title:"Power and Exclusion", sub:"Whose laws and experiences are privileged or left out when we datafy legal systems?", cues:[
+      "Are databases inclusive of regional languages or customary practices?",
+      "Does data availability reproduce legal centralism?",
+      "Who decides what gets digitised and prioritised?",
+      "Which litigants or communities get excluded?",
+      "Can platforms challenge or reinforce exclusions?"
+    ]},
+    {id:4, title:"Coloniality of Data", sub:"Can datafication help decolonise legal research, or does it risk reinforcing colonial logic?", cues:[
+      "Do tools reproduce Eurocentric categories?",
+      "Can quantitative work challenge or legitimise dominance?",
+      "How might a decolonial dataset differ?",
+      "What happens when Western standards meet indigenous knowledge?",
+      "Can datafication document legal pluralism?"
+    ]},
+    {id:5, title:"Ethics and Interpretation", sub:"What responsibilities do legal researchers have when interpreting and presenting legal data?", cues:[
+      "Is it ethical to quantify outcomes without context?",
+      "How to disclose bias, positionality, and choices?",
+      "Stakes for non-expert audiences or policy?",
+      "Can visualisation distort legal meaning?",
+      "Accountability in cleaning, coding, representation?"
+    ]},
+    {id:6, title:"Futures and Imagination", sub:"What could a just and inclusive data-driven legal research practice look like?", cues:[
+      "Which values should guide projects?",
+      "How to center marginalised voices in tools and infra?",
+      "Role for AI, NLP, open data?",
+      "Can participatory practices reshape research?",
+      "What would a counter-database look like?"
+    ]}
+  ],
+  flow:[
+    {k:"r1", name:"Orientation and icebreaker", mins:10, hint:"Intro, theme, quick round at tables"},
+    {k:"r2", name:"Deep table discussion", mins:28, hint:"Discuss sub-question, write key quotes"},
+    {k:"r3", name:"Host preparation", mins:10, hint:"Nominate host, draft 2 minute summary"},
+    {k:"r4", name:"Host presentations", mins:18, hint:"Each host shares, moderator weaves"},
+    {k:"r5", name:"Collective discussion", mins:18, hint:"Cross-table patterns and next steps"}
+  ]
+};
+
+/* ===== Helpers ===== */
+const qs = s=>document.querySelector(s), qsa=s=>Array.from(document.querySelectorAll(s));
+const save = (k,v)=>localStorage.setItem(k, JSON.stringify(v));
+const read = (k,f)=>{try{const v=JSON.parse(localStorage.getItem(k)); return v ?? f}catch{return f}}
+
+/* ===== Build table grid ===== */
+const grid = qs('#tgrid');
+DATA.tables.forEach(t=>{
+  const el = document.createElement('div');
+  el.className = 'tcard';
+  el.innerHTML = `
+    <div class="idx">#${t.id}</div>
+    <h3>${t.title}</h3>
+    <p>${t.sub}</p>
+    <div class="row"><button class="btn" data-open="${t.id}">Open</button></div>
+  `;
+  grid.appendChild(el);
+});
+
+/* ===== Modal logic ===== */
+const modal = qs('#modal'), mtitle = qs('#mtitle'), msub = qs('#msub'), mcues = qs('#mcues');
+const insInput = qs('#ins'), addBtn = qs('#add'), ilist = qs('#ilist'), hostTxt = qs('#hostTxt');
+let currentId = null;
+
+grid.addEventListener('click', e=>{
+  const id = e.target?.dataset?.open;
+  if(!id) return;
+  openTable(parseInt(id,10));
+});
+
+function openTable(id){
+  currentId = id;
+  const t = DATA.tables.find(x=>x.id===id);
+  mtitle.textContent = `Table ${t.id}: ${t.title}`;
+  msub.textContent = t.sub;
+  mcues.innerHTML = t.cues.map(c=> `<li>${c}</li>`).join('');
+  hostTxt.value = read(`host_${id}`, "");
+  insInput.value = "";
+  drawInsights();
+  drawSeats();
+  modal.showModal();
+}
+
+addBtn.addEventListener('click', ()=>{
+  const text = insInput.value.trim();
+  if(!text) return;
+  const key = `ins_${currentId}`;
+  const arr = read(key, []);
+  arr.push(text);
+  save(key, arr);
+  insInput.value = "";
+  drawInsights();
+  addToWall(text, currentId);
+  renderProjector();
+});
+
+function drawInsights(){
+  const arr = read(`ins_${currentId}`, []);
+  ilist.innerHTML = arr.map(x=> `<div class="insight">• ${x}</div>`).join('') || `<p class="m">No insights yet. Add one above.</p>`;
+}
+
+qs('#saveHost').addEventListener('click', ()=>{
+  save(`host_${currentId}`, hostTxt.value || "");
+  alert('Saved on this device.');
+  renderProjector();
+});
+qs('#exportHost').addEventListener('click', ()=>{
+  const t = DATA.tables.find(x=>x.id===currentId);
+  const blob = new Blob([`World Café host summary\nTable ${t.id}: ${t.title}\n\n${hostTxt.value}`], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`host_summary_table_${t.id}.txt`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 500);
+});
+
+/* ===== Seat simulator ===== */
+function drawSeats(){
+  const arena = modal.querySelector('.arena');
+  // remove old chairs
+  qsa('.chair', arena).forEach(c=>c.remove());
+  const R = 120, cx=160, cy=160, n=5; // 5 chairs
+  const state = read(`seats_${currentId}`, Array(n).fill(0));
+  for(let i=0;i<n;i++){
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    const x = cx + R*Math.cos(ang) - 28;
+    const y = cy + R*Math.sin(ang) - 28;
+    const b = document.createElement('button');
+    b.className = 'chair'+(state[i]?' full':'');
+    b.style.left = x+'px'; b.style.top = y+'px';
+    b.setAttribute('aria-pressed', state[i]?'true':'false');
+    b.innerHTML = state[i]?'🙂':'＋';
+    b.addEventListener('click', ()=>{
+      state[i] = state[i]?0:1;
+      save(`seats_${currentId}`, state);
+      drawSeats();
+    });
+    arena.appendChild(b);
+  }
+}
+
+/* ===== Flow timers ===== */
+const wrap = qs('#timerWrap');
+DATA.flow.forEach((r,i)=>{
+  const row = document.createElement('div');
+  row.className = 'rowt';
+  row.innerHTML = `
+    <div class="led" id="led_${i}"></div>
+    <div>
+      <div style="display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap">
+        <strong>${r.name}</strong>
+        <span class="m">${r.hint}</span>
+      </div>
+      <div class="progress"><div class="bar" id="bar_${i}"></div></div>
+    </div>
+    <div><input type="number" id="min_${i}" min="1" value="${r.mins}" /> min</div>
+  `;
+  wrap.appendChild(row);
+});
+
+let idx=-1, remain=0, running=false, tickRef=null;
+function setPct(i,p){ qs('#bar_'+i).style.width = p+'%'; }
+function nextSeg(){
+  idx++;
+  if(idx>=DATA.flow.length){ running=false; clearInterval(tickRef); return; }
+  qsa('.led').forEach(l=>l.classList.remove('run'));
+  qs('#led_'+idx).classList.add('run');
+  const mins = parseInt(qs('#min_'+idx).value,10) || 1;
+  remain = mins*60;
+}
+function tick(){
+  if(!running) return;
+  if(remain<=0){ nextSeg(); return; }
+  const mins = parseInt(qs('#min_'+idx).value,10)||1;
+  const elapsed = mins*60 - remain;
+  const pct = Math.min(100, Math.floor(elapsed/(mins*60)*100));
+  setPct(idx, pct);
+  remain--;
+}
+qs('#start').addEventListener('click', ()=>{
+  if(!running){
+    running=true;
+    if(idx<0 || idx>=DATA.flow.length){ idx=-1; nextSeg(); }
+    tickRef = setInterval(tick, 1000);
+  }
+});
+qs('#pause').addEventListener('click', ()=>{ running=false; clearInterval(tickRef); });
+qs('#reset').addEventListener('click', ()=>{
+  running=false; clearInterval(tickRef); idx=-1; qsa('.bar').forEach(b=>b.style.width='0%'); qsa('.led').forEach(l=>l.classList.remove('run'));
+});
+
+/* ===== Word wall ===== */
+const wall = qs('#wall');
+function addToWall(text, tableId){
+  // split words, update freq
+  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(w=>w && w.length>2);
+  const freq = read('freq', {});
+  words.forEach(w=> freq[w] = (freq[w]||0)+1);
+  save('freq', freq);
+  renderWall();
+}
+function renderWall(){
+  wall.innerHTML = '';
+  const freq = read('freq', {});
+  const entries = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,30);
+  const W = wall.clientWidth, H = 220;
+  entries.forEach(([w,c],i)=>{
+    const span = document.createElement('span');
+    span.className = 'bubble';
+    const size = 12 + Math.min(28, c*3);
+    span.style.fontSize = size+'px';
+    span.style.left = Math.floor(Math.random()*(W-80))+'px';
+    span.style.top = Math.floor(Math.random()*(H-40))+'px';
+    span.style.animation = `floaty ${6+Math.random()*6}s ease-in-out ${Math.random()}s infinite`;
+    span.style.background = `linear-gradient(90deg, rgba(124,156,255,${.12+c*.02}), rgba(42,245,255,${.10+c*.02}))`;
+    span.style.border = '1px solid rgba(124,156,255,.25)';
+    span.textContent = w;
+    wall.appendChild(span);
+  });
+}
+window.addEventListener('resize', renderWall);
+
+/* ===== Projector ===== */
+const proj = qs('#proj'), projectorBtn = qs('#projectorBtn');
+projectorBtn.addEventListener('click', ()=>{ proj.classList.add('on'); renderProjector(); });
+qs('#projClose').addEventListener('click', ()=> proj.classList.remove('on'));
+qs('#projFull').addEventListener('click', ()=>{
+  if(!document.fullscreenElement){ proj.requestFullscreen?.(); } else { document.exitFullscreen?.(); }
+});
+function renderProjector(){
+  // words
+  const freq = read('freq', {});
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,40);
+  qs('#projWords').innerHTML = sorted.map(([w,c])=> `<span class="projbubble">${w} × ${c}</span>`).join('') || `<p class="m">Wall is empty.</p>`;
+  // hosts
+  const blocks = DATA.tables.map(t=> {
+    const h = read(`host_${t.id}`, "");
+    if(!h) return "";
+    return `<div style="margin:.5rem 0"><strong>Table ${t.id}: ${t.title}</strong><div class="m" style="margin-top:.2rem; white-space:pre-wrap">${h}</div></div>`;
+  }).filter(Boolean).join('');
+  qs('#projHosts').innerHTML = blocks || `<p class="m">No host summaries yet.</p>`;
+}
+
+/* ===== Demo and Reset ===== */
+qs('#demo').addEventListener('click', ()=>{
+  // demo insights for all tables
+  DATA.tables.forEach(t=>{
+    const key = `ins_${t.id}`;
+    if(!read(key, []).length){
+      const seed = [
+        "context matters in coding",
+        "quantify without erasure",
+        "plural data models",
+        "bias disclosure needed",
+        "local languages missing",
+        "participatory archiving"
+      ];
+      save(key, seed.slice(0, 3+Math.floor(Math.random()*3)));
+      read(key, []).forEach(line=> addToWall(line, t.id));
+    }
+  });
+  renderWall();
+  alert('Demo insights added.');
+});
+qs('#resetAll').addEventListener('click', ()=>{
+  if(!confirm('Clear seats, insights, hosts, and word wall stored on this device?')) return;
+  Object.keys(localStorage).forEach(k=>{
+    if(k.startsWith('ins_')||k.startsWith('host_')||k.startsWith('seats_')||k==='freq') localStorage.removeItem(k);
+  });
+  renderWall();
+});
+
+/* ===== Open modal from grid ===== */
+grid.addEventListener('click', e=>{
+  // handled above, but keep to ensure delegation
+});
+
+/* ===== Build grid click handlers ===== */
+qsa('[data-open]').forEach(()=>{}); // no-op, delegation already set
+
+/* ===== Init ===== */
+renderWall();
+</script>
+
+<script>
+const fxbg = document.querySelector('.fxbg');
+let x=0, y=0, targetX=0, targetY=0;
+
+document.addEventListener('mousemove', e=>{
+  const { innerWidth: w, innerHeight: h } = window;
+  targetX = (e.clientX / w - 0.5) * 2;
+  targetY = (e.clientY / h - 0.5) * 2;
+});
+
+function animate(){
+  x += (targetX - x) * 0.05;
+  y += (targetY - y) * 0.05;
+  const offsetX = x * 30;
+  const offsetY = y * 30;
+  fxbg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(1.05)`;
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+
+
+</body>
+</html>
